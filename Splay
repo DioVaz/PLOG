@@ -1,0 +1,42 @@
+estado_inicial([[0,0,0,0,0,0,0,0],
+				[0,11,11,11,11,11,11,0],
+				[0,1,1,1,1,1,1,0],
+				[0,0,0,0,0,0,0,0],
+				[0,0,0,0,0,0,0,0],
+				[0,2,2,2,2,2,2,0],
+				[0,22,22,22,22,22,22,0],
+				[0,0,0,0,0,0,0,0]]).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                    Predicados principais do jogo                     %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+inicio:-
+		estado_inicial(Tab),
+		visualiza_estado(Tab).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                    Visualização de estado do jogo                    %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+visualiza_estado(Tab):-
+	nl, write('    0   1   2   3   4   5   6   7'), nl, nl,
+	mostra_linhas(0,Tab),
+	write('    0   1   2   3   4   5   6   7'), nl,!.
+
+mostra_linhas(_,[]).
+mostra_linhas(N,[Lin|Resto]):-
+	write(N), write(' '), mostra_linha(Lin), write('|'), write(' '), write(N), nl, nl,
+	N2 is N+1,
+	mostra_linhas(N2, Resto).
+
+mostra_linha([]).
+mostra_linha([El|Resto]):-
+	escreve(El),
+	mostra_linha(Resto).
+
+escreve(0):-write('| 0 ').
+escreve(11):-write('| A ').
+escreve(1):-write('| a ').
+escreve(22):-write('| B ').
+escreve(2):-write('| b ').
