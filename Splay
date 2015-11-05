@@ -1,19 +1,100 @@
 estado_inicial([[0,0,0,0,0,0,0,0],
-				[0,11,11,11,11,11,11,0],
-				[0,1,1,1,1,1,1,0],
-				[0,0,0,0,0,0,0,0],
-				[0,0,0,0,0,0,0,0],
-				[0,2,2,2,2,2,2,0],
-				[0,22,22,22,22,22,22,0],
-				[0,0,0,0,0,0,0,0]]).
+							 [0,11,11,11,11,11,11,0],
+							 [0,1,1,1,1,1,1,0],
+							 [0,0,0,0,0,0,0,0],
+							 [0,0,0,0,0,0,0,0],
+							 [0,2,2,2,2,2,2,0],
+							 [0,22,22,22,22,22,22,0],
+							 [0,0,0,0,0,0,0,0]]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                    Predicados principais do jogo                     %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 inicio:-
-		estado_inicial(Tab),
+		menu(0),
 		visualiza_estado(Tab).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                    Menus e apresentação                  					  %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+menu(0):-
+      menu(0, []).
+menu(0, []):-
+      estado_inicial(Tab),
+      menu(0, Tab).
+menu(0, Tab) :-
+      write('Welcome to SPLAY Game!'), nl, nl,
+      write('* Menu *'),nl,
+      write('1 - Play : 1 Player vs Computer'), nl,
+      write('2 - Play : 2 Players'),nl,
+      write('3 - Play : Computer vs. Computer'), nl,
+      write('4 - Options'), nl, nl,
+      write('5 - Exit'), nl, nl,
+      write('Your option: '),
+      read(Option),
+      valid_menu_option(Option, 5, ValidOption),
+      menu(ValidOption, Tab),!.
+menu(5, _).
+menu(1, Tab):-
+      nl, nl,
+      write('* Player vs. Computer *'), nl, nl,
+      pick_first_player(StartingPlayer), nl,
+      game_cycle(StartingPlayer, Tab, 2, Winner),
+      !.
+menu(2, Tab):-
+      nl, nl,
+      write('* Player 1 vs. Player 2'), nl,
+      pick_first_player(StartingPlayer), nl,
+      game_cycle(StartingPlayer, Tab, 1, Winner),
+      !.
+menu(3, Tab):-
+      nl, nl,
+      write('* Computer vs. Computer *'),
+      pick_first_player(StartingPlayer), nl,
+      game_cycle(StartingPlayer, Tab, 3, Winner),
+      !.
+menu(4, Tab):-
+      nl, nl,
+      write('1 - Load a board'), nl,
+      write('2 - Change the board size'),nl,
+      write('3 - Instructions'), nl,
+      read(Option),
+      valid_menu_option(Option, 3, ValidOption),
+      menu(4, Tab, ValidOption),!.
+menu(4, _Tab, 1):-
+      read(NewTab),
+      menu(0, NewTab).
+menu(4, _Tab, 2):-
+      write('Board size: '),
+      read(Size),
+      check_even(Size, ValidSize),
+      board_generator(NewTab, ValidSize),
+      write(NewTab),
+      menu(0, NewTab).
+menu(4, Tab, 3):-
+      write('Instructions on how to play the game'),nl,nl,
+      menu(0, Tab).
+
+% Checks if the option is valid
+% valid_menu_option(Option, ValidOption)
+valid_menu_option(Option, NumberOfOptions, ValidOption):-
+      Option>0, Option=<NumberOfOptions,
+      ValidOption=Option;
+      write('Invalid option. Please choose a number between 1 and '), write(NumberOfOptions), write(' : '),
+      read(NewOption),
+      valid_menu_option(NewOption, NumberOfOptions, ValidOption).
+
+% Asks the user who should begin to play
+% pick_first_player(-PlayerId)
+pick_first_player(PlayerId):-
+      nl,
+      write('You need to pick a player to begin. Throw a coin!'), nl,
+      write('Please choose the player that will begin (1 or 2): '),
+      read(Id),
+      PlayerId is Id.
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                    Visualização de estado do jogo                    %%
@@ -40,3 +121,46 @@ escreve(11):-write('| A ').
 escreve(1):-write('| a ').
 escreve(22):-write('| B ').
 escreve(2):-write('| b ').
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                    Lógica de jogo                    								%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+game_cycle(Current_Player,Tab,Mode,Winner):-
+				write(Current_Player),nl,write(Mode),nl,write(Winner),nl,
+				switch_player(Current_Player,Mode,Next_Player),
+				write(Current_Player),nl,write(Mode),nl,write(Next_Player),nl,
+				play(Current_Player,Tab,NewTab),
+				game_cycle(Next_Player,NewTab,Mode,Winner).
+
+switch_player(1, 1, Next_Player):- Next_Player=2.
+switch_player(2, 1, Next_Player):- Next_Player=1.
+switch_player(1, 2, Next_Player):- Next_Player=4.
+switch_player(4, 2, Next_Player):- Next_Player=1.
+switch_player(3, 3, Next_Player):- Next_Player=4.
+switch_player(4, 3, Next_Player):- Next_Player=3.
+
+play(Current_Player,Tab,NewTab):-
+	visualiza_estado(Tab),
+	nl,write('It is player '), write(Current_Player), write(' turn!'),nl,
+	write('Type of play: STEP - S    SPLAY - P  '), nl,
+	read(Type),
+	write('Row of origin: '), nl,
+	read(Row),
+	write('Column of origin'),nl,
+	read(Column),
+	write('Row of destination: '),nl,
+	read(NewRow),
+	write('Column of destination: '),nl,
+	read(NewColumn),
+	%validate_play(Type,Row,Column,NewRow,NewColumn, Tab),
+	%change_board(),
+	%check_over(),
+	!.
+
+%validate_play(Type,Row,Column,NewRow,NewColumn,Tab):-
+	%Type \= 'S',
+	%Type \= 'P',
+	%invalid_play.
+
+%invalid_play:-
+	%write('That play is not valid, please try again'),nl.
