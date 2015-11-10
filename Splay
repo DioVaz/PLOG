@@ -1,11 +1,23 @@
-estado_inicial([[0,0,0,0,0,0,0,0],
-							 [0,11,11,11,11,11,11,0],
-							 [0,1,1,1,1,1,1,0],
-							 [0,0,0,0,0,0,0,0],
-							 [0,0,0,0,0,0,0,0],
-							 [0,2,2,2,2,2,2,0],
-							 [0,22,22,22,22,22,22,0],
-							 [0,0,0,0,0,0,0,0]]).
+use_module(library(lists)).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                    Estado inicial do jogo                            %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Para cada casa:
+%%  a) o valor da posicao 0 e o limite maximo de pecas de cada casa.
+%%  b) Os "0"s representam espaço livre
+%%  c) Os "1"s peças brancas.
+%%  d) Os "2"s peças negras.
+%%  e) Os "3"s espaços inválidos/brancos.
+
+estado_inicial([[[7,0,0,0,0,0,0,0,3],[7,0,0,0,0,0,0,0,3],[7,0,0,0,0,0,0,0,3],[7,0,0,0,0,0,0,0,3],[7,0,0,0,0,0,0,0,3],[7,0,0,0,0,0,0,0,3],[7,0,0,0,0,0,0,0,3],[7,0,0,0,0,0,0,0,3]],
+						    [[7,0,0,0,0,0,0,0,3],[6,1,1,0,0,0,0,3,3],[6,1,1,0,0,0,0,3,3],[6,1,1,0,0,0,0,3,3],[6,1,1,0,0,0,0,3,3],[6,1,1,0,0,0,0,3,3],[6,1,1,0,0,0,0,3,3],[7,0,0,0,0,0,0,0,3]],
+						    [[7,0,0,0,0,0,0,0,3],[6,1,0,0,0,0,0,3,3],[5,1,0,0,0,0,3,3,3],[5,1,0,0,0,0,3,3,3],[5,1,0,0,0,0,3,3,3],[5,1,0,0,0,0,3,3,3],[6,1,0,0,0,0,0,3,3],[7,0,0,0,0,0,0,0,3]],
+						    [[7,0,0,0,0,0,0,0,3],[6,0,0,0,0,0,0,3,3],[5,0,0,0,0,0,3,3,3],[4,0,0,0,0,3,3,3,3],[4,0,0,0,0,3,3,3,3],[5,0,0,0,0,0,3,3,3],[6,0,0,0,0,0,0,3,3],[7,0,0,0,0,0,0,0,3]],
+						    [[7,0,0,0,0,0,0,0,3],[6,0,0,0,0,0,0,3,3],[5,0,0,0,0,0,3,3,3],[4,0,0,0,0,3,3,3,3],[4,0,0,0,0,3,3,3,3],[5,0,0,0,0,0,3,3,3],[6,0,0,0,0,0,0,3,3],[7,0,0,0,0,0,0,0,3]],
+						    [[7,0,0,0,0,0,0,0,3],[6,2,0,0,0,0,0,3,3],[5,2,0,0,0,0,3,3,3],[5,2,0,0,0,0,3,3,3],[5,2,0,0,0,0,3,3,3],[5,2,0,0,0,0,3,3,3],[6,2,0,0,0,0,0,3,3],[7,0,0,0,0,0,0,0,3]],
+						    [[7,0,0,0,0,0,0,0,3],[6,2,2,0,0,0,0,3,3],[6,2,2,0,0,0,0,3,3],[6,2,2,0,0,0,0,3,3],[6,2,2,0,0,0,0,3,3],[6,2,2,0,0,0,0,3,3],[6,2,2,0,0,0,0,3,3],[7,0,0,0,0,0,0,0,3]],
+						    [[7,0,0,0,0,0,0,0,3],[7,0,0,0,0,0,0,0,3],[7,0,0,0,0,0,0,0,3],[7,0,0,0,0,0,0,0,3],[7,0,0,0,0,0,0,0,3],[7,0,0,0,0,0,0,0,3],[7,0,0,0,0,0,0,0,3],[7,0,0,0,0,0,0,0,3]]]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                    Predicados principais do jogo                     %%
@@ -15,6 +27,7 @@ inicio:-
 		menu(0),
 		visualiza_estado(Tab).
 
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                    Menus e apresentação                  					  %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -22,8 +35,8 @@ inicio:-
 menu(0):-
       menu(0, []).
 menu(0, []):-
-      estado_inicial(Tab),
-      menu(0, Tab).
+			estado_inicial(Tab),
+			menu(0, Tab).
 menu(0, Tab) :-
       write('Welcome to SPLAY Game!'), nl, nl,
       write('* Menu *'),nl,
@@ -100,27 +113,60 @@ pick_first_player(PlayerId):-
 %%                    Visualização de estado do jogo                    %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%%IMPRIME TABULEIRO
 visualiza_estado(Tab):-
-	nl, write('    0   1   2   3   4   5   6   7'), nl, nl,
-	mostra_linhas(0,Tab),
-	write('    0   1   2   3   4   5   6   7'), nl,!.
+	nl, write('    1      2      3      4      5      6      7      8'), nl, nl,
+	mostra_tabuleiro(8,Tab),
+	write(' |------|------|------|------|------|------|------|------|'),nl,
+	write('    1      2      3      4      5      6      7      8'), nl,!.
 
-mostra_linhas(_,[]).
-mostra_linhas(N,[Lin|Resto]):-
-	write(N), write(' '), mostra_linha(Lin), write('|'), write(' '), write(N), nl, nl,
-	N2 is N+1,
-	mostra_linhas(N2, Resto).
+%%IMPRIME LIMITES DE LINHA E CHAMA MOSTRA_LINHA
+mostra_tabuleiro(_,[]).
+mostra_tabuleiro(N,[Lin|Resto]):-
+	write(N),write('|------|------|------|------|------|------|------|------|'),nl,
+	mostra_linha(Lin,4),
+	N2 is N-1,
+	mostra_tabuleiro(N2, Resto).
 
-mostra_linha([]).
-mostra_linha([El|Resto]):-
-	escreve(El),
-	mostra_linha(Resto).
+%%Chama a funcao mostra_linha_aux 4 vezes, uma por cada parte da celula que tera de dimensão 4x4 caracteres.
+mostra_linha(_,0).
+mostra_linha(Lin,N):-
+	write(' |'),
+	mostra_linha_aux(Lin,N),
+	N2 is N-1,
+	nl,
+	mostra_linha(Lin, N2).
 
-escreve(0):-write('| 0 ').
-escreve(11):-write('| A ').
-escreve(1):-write('| a ').
-escreve(22):-write('| B ').
-escreve(2):-write('| b ').
+%%Chama a funcao mostra_celula por cada casa da fila
+mostra_linha_aux([],_).
+mostra_linha_aux([Casa|Resto],N):-
+	write('  '),
+	mostra_celula(Casa,N,0),
+	write('  |'),
+	mostra_linha_aux(Resto,N).
+
+%%Chama a funcao escreve 2 vezes.
+mostra_celula(_,_,2).
+mostra_celula(Casa,N,P):-
+	PosPeca is N+P*4,
+	escreve(Casa,PosPeca),
+	P2 is P+1,
+	mostra_celula(Casa,N,P2).
+
+%%Procura conteudo no tabuleiro conteudo da posicao posPeca na celula
+escreve([],_).
+escreve([Peca|Resto],PosPeca):-
+	PosPeca=<0,
+	escreve_aux(Peca);
+	PosNew is PosPeca-1,
+	escreve(Resto, PosNew).
+
+%%Escreve consoante o valor guardado em PosPeca
+escreve_aux(0):-write(' ').
+escreve_aux(1):-write('A').
+escreve_aux(2):-write('B').
+escreve_aux(3):-write(' ').
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                    Lógica de jogo                    								%%
