@@ -1,6 +1,6 @@
 estado_inicial([[[],[],[],[],[],[],[],[]],
 							 [[],[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[]],
-							 [[],[1],[1,1,1,1,1],[1],[1],[1],[1],[]],
+							 [[],[1],[1],[1],[1],[1],[1],[]],
 							 [[],[],[],[],[],[],[],[]],
 							 [[],[],[],[],[],[],[],[]],
 							 [[],[2],[2],[2],[2],[2],[2],[]],
@@ -38,13 +38,14 @@ menu(0, Tab, Sizes) :-
       write('Welcome to SPLAY Game!'), nl, nl,
       write('* Menu *'),nl,
       write('1 - Play : 2 Players'),nl,
-      write('2 - Instructions'), nl,
-      write('3 - Exit'), nl, nl,
+			write('2 - Play : Single Player'),nl,
+      write('3 - Instructions'), nl,
+      write('4 - Exit'), nl, nl,
       write('Your option: '),
       read(Option),
-      valid_menu_option(Option, 3, ValidOption),!,
+      valid_menu_option(Option, 4, ValidOption),!,
       menu(ValidOption, Tab, Sizes).
-menu(3, _, _).
+menu(4, _, _).
 menu(1, Tab, Sizes):-
       nl, nl,
       write('* Player 1 vs. Player 2'), nl,
@@ -52,6 +53,13 @@ menu(1, Tab, Sizes):-
       game_cycle(StartingPlayer, Tab, 1, 0, Sizes),
       !.
 menu(2, Tab, Sizes):-
+			nl, nl,
+			write('* Player 2 vs. Computer'), nl,
+			pick_first_player(StartingPlayer), nl,!,
+			NewStartingPlayer is StartingPlayer + 1,
+			game_cycle(NewStartingPlayer, Tab, 2, 0, Sizes),
+			!.
+menu(3, Tab, Sizes):-
 	write('Instructions on how to play the game'),nl,nl,
 	menu(0, Tab, Sizes).
 
@@ -108,7 +116,11 @@ escreve([El|Rest],N):-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                    Lógica de jogo                    								%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+game_cycle(3,Tab,Mode,0, SizesTab):-
+				computer_to_move(3,Tab,NewTab,Winner,SizesTab),
+				game_cycle(2,NewTab,Mode,Winner,SizesTab).
 game_cycle(Current_Player,Tab,Mode,0, SizesTab):-
+				Current_Player=<2,
 				play(Current_Player,Tab,NewTab,Winner,SizesTab),
 				switch_player(Current_Player,Mode,Next_Player),
 				game_cycle(Next_Player,NewTab,Mode,Winner,SizesTab).
@@ -116,11 +128,14 @@ game_cycle(_,_,_,1,_):-
 	write('Player 1 Won the game!!!!!!!!!!!!!').
 game_cycle(_,_,_,2,_):-
 	write('Player 2 Won the game!!!!!!!!!!!!!').
+game_cycle(_,_,_,3,_):-
+	write('Computer Won the game!!!!!!!!!!!!!').
+
 
 switch_player(1, 1, Next_Player):- Next_Player=2.
 switch_player(2, 1, Next_Player):- Next_Player=1.
-switch_player(1, 2, Next_Player):- Next_Player=4.
-switch_player(4, 2, Next_Player):- Next_Player=1.
+switch_player(2, 2, Next_Player):- Next_Player=3.
+switch_player(3, 2, Next_Player):- Next_Player=2.
 switch_player(3, 3, Next_Player):- Next_Player=4.
 switch_player(4, 3, Next_Player):- Next_Player=3.
 
@@ -495,3 +510,12 @@ validate_step(Row,Column,NewRow,NewColumn,Player,Tab,SizesTab):-
 
 %invalid_play:-
 	%write('That play is not valid, please try again'),nl.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%            	      Inteligencia Artificial           								%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+computer_to_move(Current_Player,Tab,NewTab,Winner,SizesTab):-
+	write('Computer to move'),nl,nl,
+	Winner=0,
+	NewTab=Tab,
+	visualiza_estado(Tab).
