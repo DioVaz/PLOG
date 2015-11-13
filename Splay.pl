@@ -1,11 +1,20 @@
 estado_inicial([[[],[],[],[],[],[],[],[]],
 							 [[],[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[]],
-							 [[],[1],[1],[1],[1],[1],[1],[]],
+							 [[],[1],[1,1,1,1,1],[1],[1],[1],[1],[]],
 							 [[],[],[],[],[],[],[],[]],
 							 [[],[],[],[],[],[],[],[]],
 							 [[],[2],[2],[2],[2],[2],[2],[]],
 							 [[],[2,2],[2,2],[2,2],[2,2],[2,2],[2,2],[]],
 							 [[],[],[],[],[],[],[],[]]]).
+
+estado_auxiliar([[[7],[7],[7],[7],[7],[7],[7],[7]],
+							 	 [[7],[6],[6],[6],[6],[6],[6],[7]],
+							 	 [[7],[6],[5],[5],[5],[5],[6],[7]],
+							 	 [[7],[6],[5],[4],[4],[5],[6],[7]],
+							 	 [[7],[6],[5],[4],[4],[5],[6],[7]],
+							 	 [[7],[6],[5],[5],[5],[5],[6],[7]],
+							 	 [[7],[6],[6],[6],[6],[6],[6],[7]],
+							 	 [[7],[7],[7],[7],[7],[7],[7],[7]]]).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                    Predicados principais do jogo                     %%
@@ -23,8 +32,9 @@ menu(0):-
       menu(0, []).
 menu(0, []):-
       estado_inicial(Tab),
-      menu(0, Tab).
-menu(0, Tab) :-
+			estado_auxiliar(Sizes),
+      menu(0, Tab, Sizes).
+menu(0, Tab, Sizes) :-
       write('Welcome to SPLAY Game!'), nl, nl,
       write('* Menu *'),nl,
       write('1 - Play : 2 Players'),nl,
@@ -32,24 +42,24 @@ menu(0, Tab) :-
       write('3 - Exit'), nl, nl,
       write('Your option: '),
       read(Option),
-      valid_menu_option(Option, 3, ValidOption),
-      menu(ValidOption, Tab),!.
-menu(3, _).
-menu(1, Tab):-
+      valid_menu_option(Option, 3, ValidOption),!,
+      menu(ValidOption, Tab, Sizes).
+menu(3, _, _).
+menu(1, Tab, Sizes):-
       nl, nl,
       write('* Player 1 vs. Player 2'), nl,
-      pick_first_player(StartingPlayer), nl,
-      game_cycle(StartingPlayer, Tab, 1, 0),
+      pick_first_player(StartingPlayer), nl,!,
+      game_cycle(StartingPlayer, Tab, 1, 0, Sizes),
       !.
-menu(2, Tab):-
+menu(2, Tab, Sizes):-
 	write('Instructions on how to play the game'),nl,nl,
-	menu(0, Tab).
+	menu(0, Tab, Sizes).
 
 % Checks if the option is valid
 % valid_menu_option(Option, ValidOption)
 valid_menu_option(Option, NumberOfOptions, ValidOption):-
       Option>0, Option=<NumberOfOptions,
-      ValidOption=Option;
+      	ValidOption=Option;
       write('Invalid option. Please choose a number between 1 and '), write(NumberOfOptions), write(' : '),
       read(NewOption),
       valid_menu_option(NewOption, NumberOfOptions, ValidOption).
@@ -98,13 +108,13 @@ escreve([El|Rest],N):-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                    Lógica de jogo                    								%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-game_cycle(Current_Player,Tab,Mode,0):-
-				play(Current_Player,Tab,NewTab,Winner),
+game_cycle(Current_Player,Tab,Mode,0, SizesTab):-
+				play(Current_Player,Tab,NewTab,Winner,SizesTab),
 				switch_player(Current_Player,Mode,Next_Player),
-				game_cycle(Next_Player,NewTab,Mode,Winner).
-game_cycle(_,_,_,1):-
+				game_cycle(Next_Player,NewTab,Mode,Winner,SizesTab).
+game_cycle(_,_,_,1,_):-
 	write('Player 1 Won the game!!!!!!!!!!!!!').
-game_cycle(_,_,_,2):-
+game_cycle(_,_,_,2,_):-
 	write('Player 2 Won the game!!!!!!!!!!!!!').
 
 switch_player(1, 1, Next_Player):- Next_Player=2.
@@ -114,7 +124,7 @@ switch_player(4, 2, Next_Player):- Next_Player=1.
 switch_player(3, 3, Next_Player):- Next_Player=4.
 switch_player(4, 3, Next_Player):- Next_Player=3.
 
-play(Current_Player,Tab,NewTab,Winner):-
+play(Current_Player,Tab,NewTab,Winner,SizesTab):-
 	visualiza_estado(Tab),
 	nl,write('It is player '), write(Current_Player), write(' turn!'),nl,
 	write('Type of play: STEP - 1    SPLAY - 2  '), nl,
@@ -127,173 +137,204 @@ play(Current_Player,Tab,NewTab,Winner):-
 	read(NewRow),
 	write('Column of destination: '),nl,
 	read(NewColumn),
-	%validate_play(Type,Row,Column,NewRow,NewColumn, Tab),
-	make_play(Type,2,Row,Column,NewRow,NewColumn,Tab,AuxTab),
+	validate_out_of_bonds(Tab,Current_Player,NewRow,NewColumn,SizesTab),
+	check_top_piece(Tab,Row,Column,Current_Player,SizesTab),
+	make_play(Type,Row,Column,NewRow,NewColumn,Tab,AuxTab,SizesTab,Current_Player),
 	capture(AuxTab,NewTab),
 	check_winner(NewTab,Current_Player,Winner),
 	!.
 
-make_play(Type,Type2,Row,Column,NewRow,NewColumn,Tab,NewTab):-
+make_play(Type,Row,Column,NewRow,NewColumn,Tab,NewTab,SizesTab,Player):-
 	Type == 2,
-			splay(Type2,Row,Column,Tab,NewTab);
-			step(Row,Column,NewRow,NewColumn,Tab,NewTab).
+			splay_type(Row,Column,NewRow,NewColumn,Type2),
+			splay(Type2,Row,Column,Tab,NewTab,SizesTab,Player,Tab);
+			validate_step(Row,Column,NewRow,NewColumn,Player,Tab,SizesTab),
+			step(Row,Column,NewRow,NewColumn,Tab,NewTab,SizesTab,Player).
 
-splay(0,Row,Column,Tab,AuxTab):-
+splay_type(Row,Column,NewRow,NewColumn,Type2):-
+	NewColumn<Column, NewRow=:=Row,
+		Type2 = 0;
+	NewColumn=:=Column, NewRow>Row,
+		Type2 = 1;
+	NewColumn>Column, NewRow=:=Row,
+		Type2 = 2;
+	NewColumn=:=Column, NewRow<Row,
+		Type2 = 3;
+	NewColumn<Column, NewRow>Row,
+		Type2 = 4;
+	NewColumn>Column, NewRow>Row,
+		Type2 = 5;
+	NewColumn>Column, NewRow<Row,
+		Type2 = 6;
+	NewColumn<Column, NewRow<Row,
+		Type2 = 7;
+	write('Please pick appropriate coordinates'),nl.
+
+splay(0,Row,Column,Tab,AuxTab,SizesTab,Player,InitialTab):-
 	get_piece(Tab,Row,Column,Element),
 	get_from_board(Tab,Column,LinhaInicial),
 	replace(LinhaInicial,Row,[],EditedLinhaInicial),
-	spread_element(0,Element,Row,Column,Tab,NewTab),
+	spread_element(0,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab),
 	replace(NewTab,Column,EditedLinhaInicial,AuxTab).
 
-splay(1,Row,Column,Tab,AuxTab):-
+splay(1,Row,Column,Tab,AuxTab,SizesTab,Player,InitialTab):-
 	get_piece(Tab,Row,Column,Element),
-	spread_element(1,Element,Row,Column,Tab,NewTab),
+	spread_element(1,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab),
 	get_from_board(NewTab,Column,LinhaInicial),
 	replace(LinhaInicial,Row,[],EditedLinhaInicial),
 	replace(NewTab,Column,EditedLinhaInicial,AuxTab).
 
-splay(2,Row,Column,Tab,AuxTab):-
+splay(2,Row,Column,Tab,AuxTab,SizesTab,Player,InitialTab):-
 	get_piece(Tab,Row,Column,Element),
 	get_from_board(Tab,Column,LinhaInicial),
 	replace(LinhaInicial,Row,[],EditedLinhaInicial),
-	spread_element(2,Element,Row,Column,Tab,NewTab),
+	spread_element(2,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab),
 	replace(NewTab,Column,EditedLinhaInicial,AuxTab).
 
-splay(3,Row,Column,Tab,AuxTab):-
+splay(3,Row,Column,Tab,AuxTab,SizesTab,Player,InitialTab):-
 	get_piece(Tab,Row,Column,Element),
-	spread_element(3,Element,Row,Column,Tab,NewTab),
+	spread_element(3,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab),
 	get_from_board(NewTab,Column,LinhaInicial),
 	replace(LinhaInicial,Row,[],EditedLinhaInicial),
 	replace(NewTab,Column,EditedLinhaInicial,AuxTab).
 
-splay(4,Row,Column,Tab,AuxTab):-
+splay(4,Row,Column,Tab,AuxTab,SizesTab,Player,InitialTab):-
 	get_piece(Tab,Row,Column,Element),
 	get_from_board(Tab,Column,LinhaInicial),
 	replace(LinhaInicial,Row,[],EditedLinhaInicial),
-	spread_element(4,Element,Row,Column,Tab,NewTab),
+	spread_element(4,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab),
 	replace(NewTab,Column,EditedLinhaInicial,AuxTab).
 
-splay(5,Row,Column,Tab,AuxTab):-
+splay(5,Row,Column,Tab,AuxTab,SizesTab,Player,InitialTab):-
 	get_piece(Tab,Row,Column,Element),
 	get_from_board(Tab,Column,LinhaInicial),
 	replace(LinhaInicial,Row,[],EditedLinhaInicial),
-	spread_element(5,Element,Row,Column,Tab,NewTab),
+	spread_element(5,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab),
 	replace(NewTab,Column,EditedLinhaInicial,AuxTab).
 
-splay(6,Row,Column,Tab,AuxTab):-
+splay(6,Row,Column,Tab,AuxTab,SizesTab,Player,InitialTab):-
 	get_piece(Tab,Row,Column,Element),
 	get_from_board(Tab,Column,LinhaInicial),
 	replace(LinhaInicial,Row,[],EditedLinhaInicial),
-	spread_element(6,Element,Row,Column,Tab,NewTab),
+	spread_element(6,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab),
 	replace(NewTab,Column,EditedLinhaInicial,AuxTab).
 
-splay(7,Row,Column,Tab,AuxTab):-
+splay(7,Row,Column,Tab,AuxTab,SizesTab,Player,InitialTab):-
 	get_piece(Tab,Row,Column,Element),
 	get_from_board(Tab,Column,LinhaInicial),
 	replace(LinhaInicial,Row,[],EditedLinhaInicial),
-	spread_element(7,Element,Row,Column,Tab,NewTab),
+	spread_element(7,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab),
 	replace(NewTab,Column,EditedLinhaInicial,AuxTab).
 
-spread_element(0,[],_Row,_Column,Tab,Tab).
-spread_element(0,Element,Row,Column,Tab,NewTab):-
+spread_element(0,[],_Row,_Column,Tab,Tab,_SizesTab,_Player,_InitialTab).
+spread_element(0,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab):-
 	Element = [First|Rest],
 	Column2 is Column - 1,
 	get_piece(Tab,Row,Column2,Element2),
 	append([First],Element2,Element3),
+	check_max_size(Element3,Row,Column2,SizesTab,InitialTab,Player),
 	get_from_board(Tab,Column2,LinhaFinal),
 	replace(LinhaFinal,Row,Element3,EditedLinhaFinal),
 	replace(Tab,Column2,EditedLinhaFinal,NewTab2),
-	spread_element(0,Rest,Row,Column2,NewTab2,NewTab).
+	spread_element(0,Rest,Row,Column2,NewTab2,NewTab,SizesTab,Player,InitialTab).
 
-spread_element(1,[],_Row,_Column,Tab,Tab).
-spread_element(1,Element,Row,Column,Tab,NewTab):-
+spread_element(1,[],_Row,_Column,Tab,Tab,_SizesTab,_Player,_InitialTab).
+spread_element(1,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab):-
 	Element = [First|Rest],
 	Row2 is Row + 1,
 	get_piece(Tab,Row2,Column,Element2),
 	append([First],Element2,Element3),
+	check_max_size(Element3,Row2,Column,SizesTab,InitialTab,Player),
 	get_from_board(Tab,Column,LinhaFinal),
 	replace(LinhaFinal,Row2,Element3,EditedLinhaFinal),
 	replace(Tab,Column,EditedLinhaFinal,NewTab2),
-	spread_element(1,Rest,Row2,Column,NewTab2,NewTab).
+	spread_element(1,Rest,Row2,Column,NewTab2,NewTab,SizesTab,Player,InitialTab).
 
-spread_element(2,[],_Row,_Column,Tab,Tab).
-spread_element(2,Element,Row,Column,Tab,NewTab):-
+spread_element(2,[],_Row,_Column,Tab,Tab,_SizesTab,_Player,_InitialTab).
+spread_element(2,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab):-
 	Element = [First|Rest],
 	Column2 is Column + 1,
 	get_piece(Tab,Row,Column2,Element2),
 	append([First],Element2,Element3),
+	check_max_size(Element3,Row,Column2,SizesTab,InitialTab,Player),
 	get_from_board(Tab,Column2,LinhaFinal),
 	replace(LinhaFinal,Row,Element3,EditedLinhaFinal),
 	replace(Tab,Column2,EditedLinhaFinal,NewTab2),
-	spread_element(2,Rest,Row,Column2,NewTab2,NewTab).
+	spread_element(2,Rest,Row,Column2,NewTab2,NewTab,SizesTab,Player,InitialTab).
 
-spread_element(3,[],_Row,_Column,Tab,Tab).
-spread_element(3,Element,Row,Column,Tab,NewTab):-
+spread_element(3,[],_Row,_Column,Tab,Tab,_SizesTab,_Player,_InitialTab).
+spread_element(3,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab):-
 	Element = [First|Rest],
 	Row2 is Row - 1,
 	get_piece(Tab,Row2,Column,Element2),
 	append([First],Element2,Element3),
+	check_max_size(Element3,Row2,Column,SizesTab,InitialTab,Player),
 	get_from_board(Tab,Column,LinhaFinal),
 	replace(LinhaFinal,Row2,Element3,EditedLinhaFinal),
 	replace(Tab,Column,EditedLinhaFinal,NewTab2),
-	spread_element(3,Rest,Row2,Column,NewTab2,NewTab).
+	spread_element(3,Rest,Row2,Column,NewTab2,NewTab,SizesTab,Player,InitialTab).
 
-spread_element(4,[],_Row,_Column,Tab,Tab).
-spread_element(4,Element,Row,Column,Tab,NewTab):-
+spread_element(4,[],_Row,_Column,Tab,Tab,_SizesTab,_Player,_InitialTab).
+spread_element(4,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab):-
 	Element = [First|Rest],
 	Row2 is Row + 1,
 	Column2 is Column - 1,
 	get_piece(Tab,Row2,Column2,Element2),
 	append([First],Element2,Element3),
+	check_max_size(Element3,Row2,Column2,SizesTab,InitialTab,Player),
 	get_from_board(Tab,Column2,LinhaFinal),
 	replace(LinhaFinal,Row2,Element3,EditedLinhaFinal),
 	replace(Tab,Column2,EditedLinhaFinal,NewTab2),
-	spread_element(4,Rest,Row2,Column2,NewTab2,NewTab).
+	spread_element(4,Rest,Row2,Column2,NewTab2,NewTab,SizesTab,Player,InitialTab).
 
-spread_element(5,[],_Row,_Column,Tab,Tab).
-spread_element(5,Element,Row,Column,Tab,NewTab):-
+spread_element(5,[],_Row,_Column,Tab,Tab,_SizesTab,_Player,_InitialTab).
+spread_element(5,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab):-
 	Element = [First|Rest],
 	Row2 is Row + 1,
 	Column2 is Column + 1,
 	get_piece(Tab,Row2,Column2,Element2),
 	append([First],Element2,Element3),
+	check_max_size(Element3,Row2,Column2,SizesTab,InitialTab,Player),
 	get_from_board(Tab,Column2,LinhaFinal),
 	replace(LinhaFinal,Row2,Element3,EditedLinhaFinal),
 	replace(Tab,Column2,EditedLinhaFinal,NewTab2),
-	spread_element(5,Rest,Row2,Column2,NewTab2,NewTab).
+	spread_element(5,Rest,Row2,Column2,NewTab2,NewTab,SizesTab,Player,InitialTab).
 
-spread_element(6,[],_Row,_Column,Tab,Tab).
-spread_element(6,Element,Row,Column,Tab,NewTab):-
+spread_element(6,[],_Row,_Column,Tab,Tab,_SizesTab,_Player,_InitialTab).
+spread_element(6,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab):-
 	Element = [First|Rest],
 	Row2 is Row - 1,
 	Column2 is Column + 1,
 	get_piece(Tab,Row2,Column2,Element2),
 	append([First],Element2,Element3),
+	check_max_size(Element3,Row2,Column2,SizesTab,InitialTab,Player),
 	get_from_board(Tab,Column2,LinhaFinal),
 	replace(LinhaFinal,Row2,Element3,EditedLinhaFinal),
 	replace(Tab,Column2,EditedLinhaFinal,NewTab2),
-	spread_element(6,Rest,Row2,Column2,NewTab2,NewTab).
+	spread_element(6,Rest,Row2,Column2,NewTab2,NewTab,SizesTab,Player,InitialTab).
 
-spread_element(7,[],_Row,_Column,Tab,Tab).
-spread_element(7,Element,Row,Column,Tab,NewTab):-
+spread_element(7,[],_Row,_Column,Tab,Tab,_SizesTab,_Player,_InitialTab).
+spread_element(7,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab):-
 	Element = [First|Rest],
 	Row2 is Row - 1,
 	Column2 is Column - 1,
 	get_piece(Tab,Row2,Column2,Element2),
 	append([First],Element2,Element3),
+	check_max_size(Element3,Row2,Column2,SizesTab,InitialTab,Player),
 	get_from_board(Tab,Column2,LinhaFinal),
 	replace(LinhaFinal,Row2,Element3,EditedLinhaFinal),
 	replace(Tab,Column2,EditedLinhaFinal,NewTab2),
-	spread_element(7,Rest,Row2,Column2,NewTab2,NewTab).
+	spread_element(7,Rest,Row2,Column2,NewTab2,NewTab,SizesTab,Player,InitialTab).
 
-step(Row,Column,NewRow,NewColumn,Tab,NewTab):-
+step(Row,Column,NewRow,NewColumn,Tab,NewTab,SizesTab,Player):-
 	get_piece(Tab,Row,Column,Element),
 	get_piece(Tab,NewRow,NewColumn,Element2),
-	set_piece(Row,Column,NewRow,NewColumn,Element,Element2,Tab,NewTab).
+	set_piece(Row,Column,NewRow,NewColumn,Element,Element2,Tab,NewTab,SizesTab,Player).
 
 
-set_piece(Row,Column,NewRow,NewColumn,Element,Element2,Tab,NewTab):-
+set_piece(Row,Column,NewRow,NewColumn,Element,Element2,Tab,NewTab,SizesTab,Player):-
 	append(Element,Element2,Element3),
+	check_max_size(Element3,NewRow,NewColumn,SizesTab,Tab,Player),
 	get_from_board(Tab,NewColumn,LinhaFinal),
 	replace(LinhaFinal,Row,[],EditedLinhaFinal),
 	replace(EditedLinhaFinal,NewRow,Element3,EditedLinhaFinal2),
@@ -414,6 +455,38 @@ conta_pecas_tab(Tab,X,W):-
 	conta_pecas_tab(Rest,X,W1),
 	W is Z + W1.
 
+check_top_piece(Tab,Row,Column,Player,SizesTab):-
+	get_piece(Tab,Row,Column,Element),
+	Element = [First|_Rest],
+	Player == First,
+			write('Player piece is on top of the stack'),nl;
+			write('Please pick a cell with one of your pieces on top of the stack!!!'),nl,nl,!,
+			game_cycle(Player,Tab,1,0,SizesTab).
+
+validate_out_of_bonds(Tab,Player,NewRow,NewColumn,SizesTab):-
+	NewRow>=0, NewRow=<7,
+		NewColumn>=0, NewColumn=<7,
+			write('Inside of the board'),nl;
+			write('Please pick a destination cell inside the limits of the board'),nl,nl,!,
+			game_cycle(Player,Tab,1,0,SizesTab).
+
+check_max_size(Element,Row,Column,SizesTab,Tab,Player):-
+	get_piece(SizesTab,Row,Column,Element2),
+	length(Element,X1),
+	Element2 = [First|_Rest],
+	X1=<First,
+		write('Size is good'),nl;
+	write('Your movement creates invalid stacks, pick a different move!'),nl,nl,!,
+	game_cycle(Player,Tab,1,0,SizesTab).
+
+validate_step(Row,Column,NewRow,NewColumn,Player,Tab,SizesTab):-
+	Row2 = NewRow - Row,
+	Column2 = NewColumn - Column,
+	Row2>=0-1, Row2<2,
+		Column2>=0-1, Column2<2,
+			write('Valid step!'),nl;
+		write('You can only move one cell when using the step movement!'),nl,nl,!,
+		game_cycle(Player,Tab,1,0,SizesTab).
 
 %validate_play(Type,Row,Column,NewRow,NewColumn,Tab):-
 	%Type \= 'S',
