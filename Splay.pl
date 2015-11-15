@@ -16,6 +16,8 @@ estado_auxiliar([[[7],[7],[7],[7],[7],[7],[7],[7]],
 							 	 [[7],[6],[6],[6],[6],[6],[6],[7]],
 							 	 [[7],[7],[7],[7],[7],[7],[7],[7]]]).
 
+lista_jogadas([['T',0,0,0,0]]).
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                    Predicados principais do jogo                     %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -349,13 +351,14 @@ step(Row,Column,NewRow,NewColumn,Tab,NewTab,SizesTab,Player):-
 
 set_piece(Row,Column,NewRow,NewColumn,Element,Element2,Tab,NewTab,SizesTab,Player):-
 	append(Element,Element2,Element3),
-	check_max_size(Element3,NewRow,NewColumn,SizesTab,Tab,Player),
-	get_from_board(Tab,NewColumn,LinhaFinal),
-	replace(LinhaFinal,Row,[],EditedLinhaFinal),
-	replace(EditedLinhaFinal,NewRow,Element3,EditedLinhaFinal2),
-	get_from_board(Tab,Column,LinhaInicial),
-	replace(LinhaInicial,Row,[],EditedLinhaInicial),
-	replace(Tab,Column,EditedLinhaInicial,AuxTab),
+
+	check_max_size(Element3,NewRow,NewColumn,SizesTab,Tab,Player),write('Step'),
+	get_from_board(Tab,NewColumn,LinhaFinal),write('Step'),
+	replace(LinhaFinal,Row,[],EditedLinhaFinal),write('Step'),
+	replace(EditedLinhaFinal,NewRow,Element3,EditedLinhaFinal2),write('Step'),
+	get_from_board(Tab,Column,LinhaInicial),write('Step'),
+	replace(LinhaInicial,Row,[],EditedLinhaInicial),write('Step'),
+	replace(Tab,Column,EditedLinhaInicial,AuxTab),write('Step'),
 	replace(AuxTab,NewColumn,EditedLinhaFinal2,NewTab).
 
 
@@ -486,7 +489,9 @@ validate_out_of_bonds(Tab,Player,NewRow,NewColumn,SizesTab):-
 			game_cycle(Player,Tab,1,0,SizesTab).
 
 check_max_size(Element,Row,Column,SizesTab,Tab,Player):-
+write('Step'),
 	get_piece(SizesTab,Row,Column,Element2),
+	write('Step'),
 	length(Element,X1),
 	Element2 = [First|_Rest],
 	X1=<First,
@@ -514,8 +519,96 @@ validate_step(Row,Column,NewRow,NewColumn,Player,Tab,SizesTab):-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%            	      Inteligencia Artificial           								%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 computer_to_move(Current_Player,Tab,NewTab,Winner,SizesTab):-
+	visualiza_estado(Tab),
 	write('Computer to move'),nl,nl,
-	Winner=0,
+	Tab1=Tab,
+	find_moves(Tab, 1, Best,FSplay,SizesTab,0,Tab1),
+	%pick_best_move(),
 	NewTab=Tab,
-	visualiza_estado(Tab).
+	Winner=0.
+
+find_moves([],_,_,_,_,_,_).
+find_moves([Lin|Rest], Color, Best, FSplay, SizesTab,Row,Tab1):-
+	NewRow is Row+1,
+	find_moves_lin(Lin, Color, Best, NewBest, FSplay,Row,0,Tab1),
+	find_moves(Rest, Color, NewBest, FSplay,SizesTab,NewRow,Tab1).
+
+find_moves_lin([],_,_,_,_,_,_,_).
+find_moves_lin([Cell|Rest], Color, Best, NewBest, FSplay,Row,Column,Tab1):-
+	NewColumn is Column+1,
+	Valid=0,
+	check_top_pieceIA(Cell,Row,Column,Color,Valid,NewValid),
+	write(NewValid),
+	%check_splay
+	%%conta_pecas(Cell, FSplay),
+	valid_moves(Tab1,Row,Column,Color,SizesTab,NewValid, Best, NewBest,NewValid2),
+	find_moves_lin(Rest, Color, Best, NewBest, FSplay,Row,NewColumn,Tab).
+
+check_top_pieceIA(Element,Row,Column,Color,Valid,NewValid):-
+	Element = [First|_Rest],
+	Color == First,
+	NewValid=2;
+	NewValid=0,!.
+
+
+valid_moves(_,_,_,_,_,0,_,_,_).
+valid_moves(Tab,Row,Column,Color,SizesTab,Valid, Best, NewBest,NewValid):-
+	check_steps(Tab,Cell,NewTab,Row,Column,Total,Novo_total,Best, New_best).
+	%valid_moves().
+%valid_moves(Valid,Tab, Color, nova_lista_pilhas, lista_jogadas,nova_lista_jogadas,total):-
+	%check_splays(),
+	%valid_moves().
+
+check_steps(Tab,Cell,NewTab,Row,Column,Total,Novo_total,Best, New_best):-
+	checksteps_aux(Cell,Row,Column,1,0,Tab,NewTab1,SizesTab,Total,Novo_total,Best, New_best1),
+	checksteps_aux(Cell,Row,Column,0,1,Tab,NewTab2,SizesTab,Total,Novo_total,New_best1, New_best2),
+	checksteps_aux(Cell,Row,Column,-1,0,Tab,NewTab3,SizesTab,Total,Novo_total,New_best2, New_best3),
+	checksteps_aux(Cell,Row,Column,1,1,Tab,NewTab4,SizesTab,Total,Novo_total,New_best3, New_best4),
+	checksteps_aux(Cell,Row,Column,-1,1,Tab,NewTab5,SizesTab,Total,Novo_total,New_best4, New_best5),
+	checksteps_aux(Cell,Row,Column,1,0,Tab,NewTab6,SizesTab,Total,Novo_total,New_best5, New_best6),
+	checksteps_aux(Cell,Row,Column,1,-1,Tab,NewTab7,SizesTab,Total,Novo_total,New_best6, New_best7),
+	checksteps_aux(Cell,Row,Column,0,-1,Tab,NewTab8,SizesTab,Total,Novo_total,New_best7, New_best8),
+	checksteps_aux(Cell,Row,Column,-1,-1,Tab,NewTab9,SizesTab,Total,Novo_total,New_best8, New_best9),
+	New_Best=New_best9.
+
+checksteps_aux(Cell,Row,Column,X,Y,Tab,NewTab,SizesTab,Total,Novo_total,Best, New_best):-
+	NewRow is Row + Y,
+	NewColumn is Column + X,
+	validate_out_of_bondsIA(NewRow,NewColumn, Pow),
+	dostep(Row,Column,NewRow,NewColumn,Tab,NewTab,SizesTab,1, Pow).
+
+dostep(_,_,_,_,_,_,_,_,0).
+dostep(Row,Column,NewRow,NewColumn,Tab,NewTab,SizesTab,Player, Pow):-
+	step(Row,Column,NewRow,NewColumn,Tab,NewTab,SizesTab,Player),
+	write('check'),
+	addPlay(Cell,NewTab,'S',Row,Column,NewRow,NewColumn,Total,Novo_total,SizesTab,Best, New_best).
+
+addPlay(Cell, NewTab,Type,Row,Column,NewRow,NewColumn,Total,Novo_total,SizesTab,Best, New_best):-
+	check_max_sizeIA(Element,NewRow,NewColumn,SizesTab,Tab,Valid),
+	Valid==1,
+	addPlay_aux(NewTab,Type,Row,Column,NewRow,Total,Novo_total,Best, New_best).
+
+addPlay_aux(Tab,Type,Row,Column,NewRow,Total,Novo_total,Best, New_best):-
+	Novo_Total=Total+1,
+	Forca is Total,
+	%%calcula_forca(forca)
+	Novo_Total<31,
+	New_best =[Total,Type,Row,Column,NewRow];
+	New_best=Best.
+
+check_max_sizeIA(Row,Column,SizesTab,Tab,Valid):-
+	get_piece(Tab,Row,Column,Element),
+	get_piece(SizesTab,Row,Column,Element2),
+	length(Element,X1),
+	Element2 = [First|_Rest],
+	X1=<First,
+	Valid=1;
+	Valid=0.
+
+validate_out_of_bondsIA(NewRow,NewColumn,Pos):-
+		NewRow>=0, NewRow=<7,
+		NewColumn>=0, NewColumn=<7,
+		Pos=1;
+		Pos=0,!.
