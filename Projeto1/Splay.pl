@@ -1,6 +1,6 @@
 estado_inicial([[[],[],[],[],[],[],[],[]],
 							 [[],[1,1],[1,1],[1,1],[1,1],[1,1],[1,1],[]],
-							 [[],[1],[1,1,1,1,1],[1],[1],[1],[1],[]],
+							 [[],[1],[1],[1],[1],[1],[1],[]],
 							 [[],[],[],[],[],[],[],[]],
 							 [[],[],[],[],[],[],[],[]],
 							 [[],[2],[2],[2],[2],[2],[2],[]],
@@ -52,7 +52,15 @@ menu(1, Tab, Sizes):-
       game_cycle(StartingPlayer, Tab, 1, 0, Sizes),
       !.
 menu(2, Tab, Sizes):-
-	write('Instructions on how to play the game'),nl,nl,
+	write('You have 2 possible moves in this game, STEP and SPLAY:'),nl,
+	write('Step you move one unit in any direction you wish, the stack you pick will be placed on top of the stack present on the destination cell.'),nl,
+	write('Splay consists of taking an entire stack with the player color on top and spreading it out in a straight line in any direction.'),nl,
+	write('There are a few rules:'),nl,
+	write('1- Any stack you wish to move has to have one of tour pieces on the top.'),nl,
+	write('2- Any play you choose that would generate a cell that cannot SPLAY is illegal.'),nl,
+	write('3- The play you choose cannot carry stones out of the board.'),nl,
+	write('At the end of each turn any piece from player 1 present on row 1 will be captured, the same goes for player 2 but on row 8.'),nl,
+	write('The first player to capture 9 stones wins.'),nl,nl,
 	menu(0, Tab, Sizes).
 
 % Checks if the option is valid
@@ -108,6 +116,7 @@ escreve([El|Rest],N):-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%                    Lógica de jogo                    								%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%predicado responsavel pelo ciclo de jogo
 game_cycle(Current_Player,Tab,Mode,0, SizesTab):-
 				play(Current_Player,Tab,NewTab,Winner,SizesTab),
 				switch_player(Current_Player,Mode,Next_Player),
@@ -117,6 +126,7 @@ game_cycle(_,_,_,1,_):-
 game_cycle(_,_,_,2,_):-
 	write('Player 2 Won the game!!!!!!!!!!!!!').
 
+%predicados para a troca de jogador apos a jogada
 switch_player(1, 1, Next_Player):- Next_Player=2.
 switch_player(2, 1, Next_Player):- Next_Player=1.
 switch_player(1, 2, Next_Player):- Next_Player=4.
@@ -124,6 +134,7 @@ switch_player(4, 2, Next_Player):- Next_Player=1.
 switch_player(3, 3, Next_Player):- Next_Player=4.
 switch_player(4, 3, Next_Player):- Next_Player=3.
 
+%predicado para a realizacao da jogada
 play(Current_Player,Tab,NewTab,Winner,SizesTab):-
 	visualiza_estado(Tab),
 	nl,write('It is player '), write(Current_Player), write(' turn!'),nl,
@@ -144,6 +155,7 @@ play(Current_Player,Tab,NewTab,Winner,SizesTab):-
 	check_winner(NewTab,Current_Player,Winner),
 	!.
 
+%predicado auxiliar à realizacao da jogada
 make_play(Type,Row,Column,NewRow,NewColumn,Tab,NewTab,SizesTab,Player):-
 	Type == 2,
 			splay_type(Row,Column,NewRow,NewColumn,Type2),
@@ -151,6 +163,7 @@ make_play(Type,Row,Column,NewRow,NewColumn,Tab,NewTab,SizesTab,Player):-
 			validate_step(Row,Column,NewRow,NewColumn,Player,Tab,SizesTab),
 			step(Row,Column,NewRow,NewColumn,Tab,NewTab,SizesTab,Player).
 
+%Traduz as coordenadas do utilizador no tipo de splay pretendido
 splay_type(Row,Column,NewRow,NewColumn,Type2):-
 	NewColumn<Column, NewRow=:=Row,
 		Type2 = 0;
@@ -170,6 +183,7 @@ splay_type(Row,Column,NewRow,NewColumn,Type2):-
 		Type2 = 7;
 	write('Please pick appropriate coordinates'),nl.
 
+%predicado para a realizacao da jogada Splay
 splay(0,Row,Column,Tab,AuxTab,SizesTab,Player,InitialTab):-
 	get_piece(Tab,Row,Column,Element),
 	get_from_board(Tab,Column,LinhaInicial),
@@ -226,6 +240,7 @@ splay(7,Row,Column,Tab,AuxTab,SizesTab,Player,InitialTab):-
 	spread_element(7,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab),
 	replace(NewTab,Column,EditedLinhaInicial,AuxTab).
 
+%predicado auxiliar para a execução da jogada Splay, os direntes tipos são à orientaçao da jogada
 spread_element(0,[],_Row,_Column,Tab,Tab,_SizesTab,_Player,_InitialTab).
 spread_element(0,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab):-
 	Element = [First|Rest],
@@ -326,12 +341,13 @@ spread_element(7,Element,Row,Column,Tab,NewTab,SizesTab,Player,InitialTab):-
 	replace(Tab,Column2,EditedLinhaFinal,NewTab2),
 	spread_element(7,Rest,Row2,Column2,NewTab2,NewTab,SizesTab,Player,InitialTab).
 
+%predicado para a realização da jogada step
 step(Row,Column,NewRow,NewColumn,Tab,NewTab,SizesTab,Player):-
 	get_piece(Tab,Row,Column,Element),
 	get_piece(Tab,NewRow,NewColumn,Element2),
 	set_piece(Row,Column,NewRow,NewColumn,Element,Element2,Tab,NewTab,SizesTab,Player).
 
-
+%predicado auxiliar para a realização da jogada step
 set_piece(Row,Column,NewRow,NewColumn,Element,Element2,Tab,NewTab,SizesTab,Player):-
 	append(Element,Element2,Element3),
 	check_max_size(Element3,NewRow,NewColumn,SizesTab,Tab,Player),
@@ -366,7 +382,7 @@ get_from_board([_Head|Tail],Pos,Elem):-
   get_from_board(Tail,NewPos,Elem).
 
 
-
+%predicado responsavel pela captura
 capture(Tab,NewTab):-
 	get_piece(Tab, 0, 0, Element0),
 	delMember(1,Element0,ElementFinal0),
@@ -421,7 +437,7 @@ capture(Tab,NewTab):-
 	replace(Tab,0,LinhaBrancasFinal7,AuxTab),
 	replace(AuxTab,7,LinhaPretasFinal7,NewTab).
 
-
+%predicado auxiliar para apagar um membro
 delMember(_, [], []).
 delMember(X, [X|Xs], Y) :-
     delMember(X, Xs, Y).
@@ -429,7 +445,7 @@ delMember(X, [T|Xs], [T|Y]) :-
     dif(X, T),
     delMember(X, Xs, Y).
 
-
+%predicado para verificar se o jogo termina
 check_winner(Tab,Player,Winner):-
 	conta_pecas_tab(Tab,Player,Z),
 	Z<10,
@@ -448,6 +464,7 @@ conta_pecas_linha(Linha,X,W):-
 	conta_pecas_linha(Rest,X,W1),
 	W is Z + W1.
 
+%predicado auxiliar para contar o numero de peças de cada tipo no tabuleiro
 conta_pecas_tab([],_X,0).
 conta_pecas_tab(Tab,X,W):-
 	Tab = [First|Rest],
@@ -455,6 +472,7 @@ conta_pecas_tab(Tab,X,W):-
 	conta_pecas_tab(Rest,X,W1),
 	W is Z + W1.
 
+%verifica se a stack seleccionada tem uma peça do jogador no topo
 check_top_piece(Tab,Row,Column,Player,SizesTab):-
 	get_piece(Tab,Row,Column,Element),
 	Element = [First|_Rest],
@@ -463,6 +481,7 @@ check_top_piece(Tab,Row,Column,Player,SizesTab):-
 			write('Please pick a cell with one of your pieces on top of the stack!!!'),nl,nl,!,
 			game_cycle(Player,Tab,1,0,SizesTab).
 
+%Verifica se a jogada ultrapassa os limites do tabuleiro
 validate_out_of_bonds(Tab,Player,NewRow,NewColumn,SizesTab):-
 	NewRow>=0, NewRow=<7,
 		NewColumn>=0, NewColumn=<7,
@@ -470,6 +489,7 @@ validate_out_of_bonds(Tab,Player,NewRow,NewColumn,SizesTab):-
 			write('Please pick a destination cell inside the limits of the board'),nl,nl,!,
 			game_cycle(Player,Tab,1,0,SizesTab).
 
+%Verifica se a peça criada pela jogada ultrapassa o tamanho permitido
 check_max_size(Element,Row,Column,SizesTab,Tab,Player):-
 	get_piece(SizesTab,Row,Column,Element2),
 	length(Element,X1),
@@ -479,6 +499,7 @@ check_max_size(Element,Row,Column,SizesTab,Tab,Player):-
 	write('Your movement creates invalid stacks, pick a different move!'),nl,nl,!,
 	game_cycle(Player,Tab,1,0,SizesTab).
 
+%Valida as coordenadas do movimento STEP
 validate_step(Row,Column,NewRow,NewColumn,Player,Tab,SizesTab):-
 	Row2 = NewRow - Row,
 	Column2 = NewColumn - Column,
@@ -487,11 +508,3 @@ validate_step(Row,Column,NewRow,NewColumn,Player,Tab,SizesTab):-
 			write('Valid step!'),nl;
 		write('You can only move one cell when using the step movement!'),nl,nl,!,
 		game_cycle(Player,Tab,1,0,SizesTab).
-
-%validate_play(Type,Row,Column,NewRow,NewColumn,Tab):-
-	%Type \= 'S',
-	%Type \= 'P',
-	%invalid_play.
-
-%invalid_play:-
-	%write('That play is not valid, please try again'),nl.
